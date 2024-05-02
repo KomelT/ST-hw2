@@ -30,6 +30,12 @@ TABLE_ROW = """
 </tr>
 """
 
+# Template for a 301 (Moved Permanently) error
+RESPONSE_301 = """HTTP/1.1 301 Moved Permanently\r
+location: %s\r
+\r
+"""
+
 # Template for a 404 (Not found) error
 RESPONSE_404 = """HTTP/1.1 404 Not found\r
 content-type: text/html\r
@@ -48,7 +54,7 @@ DIRECTORY_LISTING = """<!DOCTYPE html>
 <h1>Contents of %s:</h1>
 
 <ul>
-{{CONTENTS}}
+%s
 </ul> 
 """
 
@@ -116,6 +122,11 @@ def read_from_db(criteria=None):
     except (IOError, EOFError):
         return []
 
+def create_directory_listing(uri):
+    contents = []
+    for item in listdir(WWW_DATA + uri):
+        contents.append(FILE_TEMPLATE % (item, item))
+    return (DIRECTORY_LISTING % (uri, uri, ''.join(contents))).encode("utf-8")
 
 def process_request(connection, address):
     """Process an incoming socket request.
@@ -164,9 +175,22 @@ def process_request(connection, address):
 
     # create the response
     try:
-        with open(WWW_DATA + "/" + uri[1:], "rb") as file:
-            body = file.read()
-    except Exception:
+        if uri[-1] == "/" and isdir(WWW_DATA + uri):
+            body = create_directory_listing(uri)
+            
+        elif isdir(WWW_DATA + uri):
+            client.write((RESPONSE_301 % (uri + "/")).encode("utf-8"))
+            client.close()
+            return
+        
+        elif isfile(WWW_DATA + uri):            
+            with open(WWW_DATA + uri, "rb") as file:
+                body = file.read()
+        else:
+            raise Exception("File not found")
+
+    except Exception as e:
+        print(f"Error: {e}")
         client.write(RESPONSE_404.encode("utf-8"))
         client.close()
         return
