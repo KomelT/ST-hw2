@@ -138,6 +138,18 @@ def process_request(connection, address):
         return
 
     # Read and parse headers
+    try:
+        headers = dict()
+        while True:
+            line = client.readline().decode("utf-8").strip()
+            print(line)
+            if not line:
+                break
+            key, value = line.split(":", 1)
+            headers[key.strip().lower()] = value.strip()
+    except ValueError as e:
+        print(f"Bad request headers: {e}")
+        return
 
     # Read and parse the body of the request (if applicable)
 
