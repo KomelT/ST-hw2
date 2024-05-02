@@ -124,9 +124,11 @@ def read_from_db(criteria=None):
 
 def create_directory_listing(uri):
     contents = []
+    contents.append(FILE_TEMPLATE % ("..", ".."))
     for item in listdir(WWW_DATA + uri):
         contents.append(FILE_TEMPLATE % (item, item))
-    return (DIRECTORY_LISTING % (uri, uri, ''.join(contents))).encode("utf-8")
+    contents.sort()
+    return (DIRECTORY_LISTING % (uri, uri, '\n'.join(contents))).encode("utf-8")
 
 def process_request(connection, address):
     """Process an incoming socket request.
@@ -176,7 +178,23 @@ def process_request(connection, address):
     # create the response
     try:
         if uri[-1] == "/" and isdir(WWW_DATA + uri):
+            if isfile(WWW_DATA + uri + "index.html"):
+                with open(WWW_DATA + uri + "index.html", "rb") as file:
+                    body = file.read()
+                header = HEADER_RESPONSE_200 % (
+                    mimetypes.guess_type(uri + "index.html")[0],
+                    len(body)
+                )
+                client.write(header.encode("utf-8"))
+                client.write(body)
+                client.close()
+                return
+                
             body = create_directory_listing(uri)
+            header = HEADER_RESPONSE_200 % (
+                "text/html",
+                len(body)
+            )
             
         elif isdir(WWW_DATA + uri):
             client.write((RESPONSE_301 % (uri + "/")).encode("utf-8"))
@@ -186,6 +204,12 @@ def process_request(connection, address):
         elif isfile(WWW_DATA + uri):            
             with open(WWW_DATA + uri, "rb") as file:
                 body = file.read()
+            
+            header = HEADER_RESPONSE_200 % (
+                mimetypes.guess_type(uri)[0],
+                len(body)
+            )
+            
         else:
             raise Exception("File not found")
 
@@ -194,11 +218,6 @@ def process_request(connection, address):
         client.write(RESPONSE_404.encode("utf-8"))
         client.close()
         return
-        
-    header = HEADER_RESPONSE_200 % (
-        mimetypes.guess_type(uri)[0],
-        len(body)
-    )
 
     # Write the response back to the socket
     client.write(header.encode("utf-8"))
