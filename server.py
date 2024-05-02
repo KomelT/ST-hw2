@@ -177,6 +177,9 @@ def process_request(connection, address):
     )
 
     # Write the response back to the socket
+    client.write(header.encode("utf-8"))
+    client.write(body)
+    client.close()
 
 
 def main(port):
