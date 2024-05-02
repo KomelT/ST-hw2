@@ -152,6 +152,15 @@ def process_request(connection, address):
         return
 
     # Read and parse the body of the request (if applicable)
+    try:
+        body = None
+        if "content-length" in headers:
+            body = client.read(int(headers["content-length"]))
+            body = json.loads(body)
+            print(body)
+    except ValueError as e:
+        print(f"Bad request body: {e}")
+        return
 
     # create the response
 
