@@ -163,6 +163,18 @@ def process_request(connection, address):
         return
 
     # create the response
+    try:
+        with open(WWW_DATA + "/" + uri[1:], "rb") as file:
+            body = file.read()
+    except Exception:
+        client.write(RESPONSE_404.encode("utf-8"))
+        client.close()
+        return
+        
+    header = HEADER_RESPONSE_200 % (
+        mimetypes.guess_type(uri)[0],
+        len(body)
+    )
 
     # Write the response back to the socket
 
