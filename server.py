@@ -125,6 +125,17 @@ def process_request(connection, address):
     """
 
     # Read and parse the request line
+    client = connection.makefile("wrb")
+    try:
+        line = client.readline().decode("utf-8").strip()
+        print(line)
+        method, uri, version = line.split(" ")
+        assert method == "GET" or method == "POST", f"Unsupported method: {method}"
+        assert uri.startswith("/"), f"Unsupported URI: {uri}"
+        assert version == "HTTP/1.1", f"Unsupported version: {version}"
+    except (ValueError, AssertionError) as e:
+        print(f"Bad request: {e}")
+        return
 
     # Read and parse headers
 
@@ -147,7 +158,7 @@ def main(port):
 
     while True:
         connection, address = server.accept()
-        print("[%s:%d] CONNECTED" % address)
+        print("[%s:%d] CONNECTED\n" % address)
         process_request(connection, address)
         connection.close()
         print("[%s:%d] DISCONNECTED" % address)
